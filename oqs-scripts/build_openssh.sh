@@ -17,6 +17,12 @@ case "$OSTYPE" in
     *)        echo "Unknown operating system: $OSTYPE" ; exit 1 ;;
 esac
 
+DISTRO=$(cat /etc/os-release | grep ^ID= | cut -d "=" -f 2)
+LIB_SUFFIX=lib
+case "$DISTRO" in
+    fedora*) LIB_SUFFIX=lib64
+esac
+
 if [ -f Makefile ]; then
     make clean
 else
@@ -24,18 +30,18 @@ else
 fi
 
 if [ "x${WITH_OPENSSL}" == "xtrue" ]; then
-    ./configure --prefix="${INSTALL_PREFIX}" --with-ldflags="-Wl,-rpath -Wl,${INSTALL_PREFIX}/lib" --with-libs=-lm --with-ssl-dir="${OPENSSL_SYS_DIR}" --with-liboqs-dir="`pwd`/oqs" --with-cflags="-Wno-implicit-function-declaration -I${INSTALL_PREFIX}/include" --sysconfdir="${INSTALL_PREFIX}"
+    ./configure --prefix="${INSTALL_PREFIX}" --with-ldflags="-Wl,-rpath -Wl,${INSTALL_PREFIX}/${LIB_SUFFIX}" --with-libs=-lm --with-ssl-dir="${OPENSSL_SYS_DIR}" --with-liboqs-dir="`pwd`/oqs" --with-cflags="-Wno-implicit-function-declaration -I${INSTALL_PREFIX}/include" --sysconfdir="${INSTALL_PREFIX}"
 else
-    ./configure --prefix="${INSTALL_PREFIX}" --with-ldflags="-Wl,-rpath -Wl,${INSTALL_PREFIX}/lib" --with-libs=-lm --without-openssl --with-liboqs-dir="`pwd`/oqs" --with-cflags="-I${INSTALL_PREFIX}/include" --sysconfdir="${INSTALL_PREFIX}"
+    ./configure --prefix="${INSTALL_PREFIX}" --with-ldflags="-Wl,-rpath -Wl,${INSTALL_PREFIX}/${LIB_SUFFIX}" --with-libs=-lm --without-openssl --with-liboqs-dir="`pwd`/oqs" --with-cflags="-I${INSTALL_PREFIX}/include" --sysconfdir="${INSTALL_PREFIX}"
 fi
 if [ "x${CIRCLECI}" == "xtrue" ] || [ "x${TRAVIS}" == "xtrue" ]; then
     make -j2
 else
     make -j
 fi
-# check whether INSTALL_PREFIX/lib exists to support shared OQS builds
-if [ ! -d $INSTALL_PREFIX/lib ]; then
+# check whether INSTALL_PREFIX/LIB_SUFFIX exists to support shared OQS builds
+if [ ! -d $INSTALL_PREFIX/$LIB_SUFFIX ]; then
    mkdir -p $INSTALL_PREFIX
-   cp -R oqs/lib $INSTALL_PREFIX
+   cp -R "oqs/${LIB_SUFFIX}" $INSTALL_PREFIX
 fi
 make install
